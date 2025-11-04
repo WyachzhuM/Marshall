@@ -1,7 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using MarshallApp.Models;
 using System.IO;
 using System.Text.Json;
-using MarshallApp.Models;
 
 namespace MarshallApp
 {
