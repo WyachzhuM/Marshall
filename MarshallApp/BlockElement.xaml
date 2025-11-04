@@ -1,0 +1,58 @@
+﻿<UserControl x:Class="MarshallApp.BlockElement"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Border BorderThickness="1" BorderBrush="Lime" Padding="1" Margin="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="25"/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+            <!-- Top Panel -->
+            <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Grid.Row="0">
+                <DockPanel>
+                    <TextBlock x:Name="FileNameText"
+                               DockPanel.Dock="Left"
+                               Text=""
+                               VerticalAlignment="Center"
+                               Foreground="Lime"
+                               Margin="5,0,0,0"
+                               FontWeight="Bold"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button x:Name="EditBlockButton"
+                                Content="Edit"
+                                Style="{StaticResource FlatButtonStyle}"
+                                Click="EditButton_Click">
+                            <Button.ContextMenu>
+                                <ContextMenu x:Name="EditMenu">
+                                    <MenuItem Header="Select .py file..." Click="SelectPythonFile_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="Delete block" Click="MenuItem_Click"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                        <Button x:Name="CopyButton"
+                                Content="Copy"
+                                Style="{StaticResource FlatButtonStyle}"
+                                Click="CopyButton_Click"/>
+                        <Button x:Name="LoopToggleButton"
+                                Content="Loop: OFF"
+                                Style="{StaticResource FlatButtonStyle}"
+                                Click="ToggleLoop_Click"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+            <!-- Main Output -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <TextBlock x:Name="OutputText"
+                           Text="(script output will appear here)"
+                           TextWrapping="Wrap"
+                           Foreground="White"
+                           FontFamily="Consolas"/>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>
