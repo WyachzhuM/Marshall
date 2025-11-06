@@ -11,7 +11,7 @@
                 <RowDefinition Height="25"/>
                 <RowDefinition/>
             </Grid.RowDefinitions>
-            <!-- Top Panel -->
+
             <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Grid.Row="0">
                 <DockPanel>
                     <TextBlock x:Name="FileNameText"
@@ -20,7 +20,7 @@
                                VerticalAlignment="Center"
                                Foreground="Lime"
                                Margin="5,0,0,0"
-                               FontWeight="Bold"/>
+                               FontWeight="Bold" ToolTip=".py filename"/>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button x:Name="EditBlockButton"
                                 Content="Edit"
@@ -35,24 +35,55 @@
                             </Button.ContextMenu>
                         </Button>
                         <Button x:Name="CopyButton"
-                                Content="Copy"
-                                Style="{StaticResource FlatButtonStyle}"
-                                Click="CopyButton_Click"/>
+                                Style="{StaticResource FlatImageButtonStyle}"
+                                Click="CopyButton_Click" Width="20" Height="20" ToolTip="Copy block output">
+                            <Button.Background>
+                                <ImageBrush ImageSource="/Resources/Icons/copy.png"/>
+                            </Button.Background>
+                        </Button>
                         <Button x:Name="LoopToggleButton"
-                                Content="Loop: OFF"
-                                Style="{StaticResource FlatButtonStyle}"
-                                Click="ToggleLoop_Click"/>
+                                Style="{StaticResource FlatImageButtonStyle}"
+                                Click="ToggleLoop_Click" Width="20" Height="20" ToolTip="Loop settings">
+                            <Button.Background>
+                                <ImageBrush ImageSource="/Resources/Icons/loop.png"/>
+                            </Button.Background>
+                        </Button>
+                        <Button x:Name="InputToggleButton"
+                                Style="{StaticResource FlatImageButtonStyle}"
+                                Click="ToggleInput_Click" Width="20" Height="20" ToolTip="Input field">
+                            <Button.Background>
+                                <ImageBrush ImageSource="/Resources/Icons/input.png"/>
+                            </Button.Background>
+                        </Button>
                     </StackPanel>
                 </DockPanel>
             </Border>
-            <!-- Main Output -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                <TextBlock x:Name="OutputText"
-                           Text="(script output will appear here)"
-                           TextWrapping="Wrap"
-                           Foreground="White"
-                           FontFamily="Consolas"/>
-            </ScrollViewer>
+
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="OutputText"
+                               TextWrapping="Wrap"
+                               Foreground="White"
+                               FontFamily="Consolas"/>
+                </ScrollViewer>
+
+                <TextBox x:Name="UserInputBox"
+                         Grid.Row="1"
+                         Visibility="Collapsed"
+                         Foreground="White"
+                         Background="#222"
+                         FontFamily="Consolas"
+                         KeyDown="UserInputBox_KeyDown"
+                         Padding="4"
+                         Margin="0,2,0,0"
+                         BorderBrush="Gray"
+                         BorderThickness="1"/>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

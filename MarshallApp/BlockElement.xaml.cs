@@ -1,9 +1,13 @@
-﻿using Microsoft.Win32;
+﻿// 悲しいという気持ち - Yuyoyuppe
+
+
+using Microsoft.Win32;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace MarshallApp
@@ -15,12 +19,15 @@ namespace MarshallApp
         public bool isLooping = false;
         public double LoopInterval { get; set; } = 5.0;
         private DispatcherTimer? loopTimer;
+        private Process? activeProcess;
+        private bool isInputVisible = false;
 
         public BlockElement(Action<BlockElement>? onRemove)
         {
             InitializeComponent();
             OnRemove = onRemove;
             UpdateLoopButton();
+            UpdateInputButton();
         }
 
         private void MenuItem_Click(object sender, RoutedEventArgs e)
@@ -39,25 +46,18 @@ namespace MarshallApp
         private void SelectPythonFile_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new OpenFileDialog { Filter = "Python files (*.py)|*.py|All files (*.*)|*.*" };
-
             if (dlg.ShowDialog() == true)
             {
                 pythonFilePath = dlg.FileName;
                 SetFileNameText();
                 RunPythonScript();
             }
-            else
-            {
-                OutputText.Text = "No file selected!";
-            }
         }
 
         public void SetFileNameText()
         {
             if (!string.IsNullOrEmpty(pythonFilePath))
-            {
                 FileNameText.Text = Path.GetFileNameWithoutExtension(pythonFilePath);
-            }
         }
 
         public async void RunPythonScript()
@@ -70,49 +70,61 @@ namespace MarshallApp
 
             try
             {
-                ProcessStartInfo psi = new ProcessStartInfo
+                StopActiveProcess();
+
+                var psi = new ProcessStartInfo
                 {
                     FileName = "python",
                     Arguments = $"\"{pythonFilePath}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
+                    RedirectStandardInput = true,
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     StandardOutputEncoding = Encoding.UTF8,
                     StandardErrorEncoding = Encoding.UTF8
                 };
 
-                psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
+                psi.EnvironmentVariables["PYTHONUTF8"] = "1";
 
-                using (Process process = new Process { StartInfo = psi })
+                activeProcess = new Process { StartInfo = psi };
+                activeProcess.Start();
+
+                _ = Task.Run(async () =>
                 {
-                    process.Start();
-                    string output = await process.StandardOutput.ReadToEndAsync();
-                    string error = await process.StandardError.ReadToEndAsync();
-                    if (error.Contains("ModuleNotFoundError"))
+                    Dispatcher.Invoke(() =>
                     {
-                        string? missing = ParseMissingModule(error);
-                        if (!string.IsNullOrEmpty(missing))
+                        OutputText.Text = string.Empty;
+                    });
+
+                    var buffer = new char[1];
+                    var reader = activeProcess.StandardOutput;
+                    while (!reader.EndOfStream)
+                    {
+                        int count = await reader.ReadAsync(buffer, 0, 1);
+                        if (count > 0)
                         {
-                            OutputText.Text = $"Module not found: {missing}. We're trying to install it...";
-                            bool installed = await InstallPythonPackage(missing);
-                            if (installed)
-                            {
-                                OutputText.Text += $"\nThe {missing} module is installed. Restarting the script...\n";
-                                RunPythonScript();
-                                return;
-                            }
-                            else
-                            {
-                                OutputText.Text += $"\nCouldn't install {missing}. Install manually: pip install {missing}";
-                            }
+                            Dispatcher.Invoke(() => OutputText.Text += buffer[0]);
                         }
                     }
-                    else
+                });
+
+                _ = Task.Run(async () =>
+                {
+                    string? line;
+                    while ((line = await activeProcess.StandardError.ReadLineAsync()) != null)
                     {
-                        OutputText.Text = string.IsNullOrWhiteSpace(error) ? $"{output}" : $"[{Path.GetFileNameWithoutExtension(pythonFilePath)}]\n{output}\nError:\n{error}";
+                        Dispatcher.Invoke(() => OutputText.Text += "\n[Error] " + line);
                     }
-                }
+                });
+
+                activeProcess.Exited += (s, e) =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        OutputText.Text = string.Empty;
+                    });
+                };
             }
             catch (Exception ex)
             {
@@ -120,47 +132,39 @@ namespace MarshallApp
             }
         }
 
-        private string? ParseMissingModule(string errorText)
-        {
-            int start = errorText.IndexOf("No module named '");
-            if (start == -1)
-                return null;
-            start += "No module named '".Length;
-
-            int end = errorText.IndexOf("'", start);
-            if (end == -1)
-                return null;
-            return errorText.Substring(start, end - start);
-        }
-
-        private async Task<bool> InstallPythonPackage(string package)
+        private void StopActiveProcess()
         {
             try
             {
-                ProcessStartInfo psi = new ProcessStartInfo
-                {
-                    FileName = "python",
-                    Arguments = $"-m pip install {package}",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = Encoding.UTF8,
-                    StandardErrorEncoding = Encoding.UTF8
-                };
-                using Process process = new Process
-                {
-                    StartInfo = psi
-                };
-                process.Start();
-                string output = await process.StandardOutput.ReadToEndAsync();
-                string error = await process.StandardError.ReadToEndAsync();
-                bool success = !error.Contains("ERROR", StringComparison.OrdinalIgnoreCase);
-                return success;
+                if (activeProcess != null && !activeProcess.HasExited)
+                    activeProcess.Kill();
             }
-            catch
+            catch { }
+        }
+
+        private void ToggleInput_Click(object sender, RoutedEventArgs e)
+        {
+            isInputVisible = !isInputVisible;
+            UserInputBox.Visibility = isInputVisible ? Visibility.Visible : Visibility.Collapsed;
+            UpdateInputButton();
+        }
+
+        private void UpdateInputButton()
+        {
+            //InputToggleButton.Content = $"Input: {(isInputVisible ? "ON" : "OFF")}";
+        }
+
+        private void UserInputBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && activeProcess != null && !activeProcess.HasExited)
             {
-                return false;
+                string input = UserInputBox.Text.Trim();
+                if (!string.IsNullOrEmpty(input))
+                {
+                    activeProcess.StandardInput.WriteLine(input);
+                    OutputText.Text += $"\n>>> {input}\n";
+                    UserInputBox.Clear();
+                }
             }
         }
 
@@ -170,9 +174,7 @@ namespace MarshallApp
 
             if (isLooping)
             {
-                string input = Microsoft.VisualBasic.Interaction.InputBox(
-                    "Interval in seconds:", "Loop Settings", LoopInterval.ToString());
-
+                string input = Microsoft.VisualBasic.Interaction.InputBox("Interval in seconds:", "Loop Settings", LoopInterval.ToString());
                 if (double.TryParse(input, out double sec) && sec > 0)
                     LoopInterval = sec;
 
@@ -191,21 +193,14 @@ namespace MarshallApp
 
         private void UpdateLoopButton()
         {
-            LoopToggleButton.Content = $"Loop: {(isLooping ? "ON" : "OFF")}";
+            //LoopToggleButton.Content = $"Loop: {(isLooping ? "ON" : "OFF")}";
         }
 
         private void UpdateLoopStatus()
         {
             if (isLooping)
-            {
-                OutputText.Text = $"Loop: ON | Interval: {LoopInterval}s | File: {Path.GetFileNameWithoutExtension(pythonFilePath)}\n\nWaiting for next run...";
-            }
-            else
-            {
-                OutputText.Text = string.IsNullOrEmpty(pythonFilePath)
-                    ? "(script output will appear here)"
-                    : $"File: {Path.GetFileNameWithoutExtension(pythonFilePath)}\nReady to run.";
-            }
+                OutputText.Text = $"Loop: ON | Interval: {LoopInterval}s | File: {Path.GetFileNameWithoutExtension(pythonFilePath)}";
+
         }
 
         private void StopLoop()
@@ -222,6 +217,7 @@ namespace MarshallApp
         public void RestoreLoopState()
         {
             UpdateLoopButton();
+            UpdateInputButton();
 
             if (isLooping)
             {

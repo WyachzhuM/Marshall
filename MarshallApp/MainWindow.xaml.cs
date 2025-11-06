@@ -154,7 +154,6 @@ namespace MarshallApp
                     block.SetFileNameText();
                     block.RunPythonScript();
                 }
-
                 block.RestoreLoopState();
             }
 

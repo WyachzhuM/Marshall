@@ -240,5 +240,47 @@
             </Setter>
         </Style>
 
+        <Style x:Key="FlatImageButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Padding" Value="8,2,8,2"/>
+            <Setter Property="Margin" Value="5,0,5,0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="border" Background="{TemplateBinding Background}">
+                                <ContentPresenter x:Name="content" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="border" Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="content" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="Lime" ShadowDepth="0" BlurRadius="8"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="content" Property="OpacityMask">
+                                    <Setter.Value>
+                                        <SolidColorBrush Color="Lime"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Application.Resources>
 </Application>
