@@ -1,6 +1,6 @@
 # Marshall
 
-**Marshall** is a desktop application based on **WPF (.NET 7)**, which allows you to manage and run Python scripts in convenient visual blocks.  
+**[Marshall](https://github.com/LPLP-ghacc/Marshall/releases)** is a desktop application based on **WPF (.NET 7)**, which allows you to manage and run Python scripts in convenient visual blocks.  
 Each block can execute a separate script, restart automatically at a preset interval, and also save its state between program launches.
 
 The Marshall application is designed as a tool for automating and adding Python scripts to a virtual environment.
