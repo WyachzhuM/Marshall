@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Threading;
 
@@ -34,6 +35,8 @@ public partial class BlockElement : UserControl
             OutputText.Text = "File not found or not selected!";
             return;
         }
+
+        SetFileNameText();
 
         try
         {
@@ -81,7 +84,28 @@ public partial class BlockElement : UserControl
                 string? line;
                 while ((line = await activeProcess.StandardError.ReadLineAsync()) != null)
                 {
-                    Dispatcher.Invoke(() => OutputText.Text += "\n[Error] " + line);
+                    if (line.Contains("No module named"))
+                    {
+                        string? missingModule = ParseMissingModule(line);
+                        if (!string.IsNullOrEmpty(missingModule))
+                        {
+                            Dispatcher.Invoke(() => OutputText.Text += $"\n[AutoFix] Installing missing module: {missingModule}...\n");
+                            bool installed = await InstallPythonPackage(missingModule);
+                            if (installed)
+                            {
+                                Dispatcher.Invoke(() => OutputText.Text += $"[AutoFix] Successfully installed {missingModule}. Restarting script...\n");
+                                Dispatcher.Invoke(() => RunPythonScript());
+                            }
+                            else
+                            {
+                                Dispatcher.Invoke(() => OutputText.Text += $"[AutoFix] Failed to install {missingModule}.\n");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Dispatcher.Invoke(() => OutputText.Text += "\n[Error] " + line);
+                    }
                 }
             });
 
@@ -97,6 +121,50 @@ public partial class BlockElement : UserControl
         {
             OutputText.Text = $"\nPython startup error:\n{ex.Message}";
         }
+    }
+
+    private async Task<bool> InstallPythonPackage(string package)
+    {
+        try
+        {
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "python",
+                Arguments = $"-m pip install {package}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8
+            };
+            using Process process = new Process
+            {
+                StartInfo = psi
+            };
+            process.Start();
+            string output = await process.StandardOutput.ReadToEndAsync();
+            string error = await process.StandardError.ReadToEndAsync();
+            bool success = !error.Contains("ERROR", StringComparison.OrdinalIgnoreCase);
+            return success;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private string? ParseMissingModule(string errorText)
+    {
+        int start = errorText.IndexOf("No module named '");
+        if (start == -1)
+            return null;
+        start += "No module named '".Length;
+
+        int end = errorText.IndexOf("'", start);
+        if (end == -1)
+            return null;
+        return errorText.Substring(start, end - start);
     }
 
     private void StopActiveProcess()

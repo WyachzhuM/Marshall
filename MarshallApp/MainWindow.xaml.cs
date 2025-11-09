@@ -127,14 +127,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         LeftCol.Width = new GridLength(LeftCol.MaxWidth);
     }
 
-    private void ScriptEditorHideChecker_Checked(object sender, RoutedEventArgs e)
-    {
-        RightCol.Width = new GridLength(RightCol.MaxWidth);
-    }
-    
     private void ScriptBrowserHideChecker_Unchecked(object sender, RoutedEventArgs e)
     {
         LeftCol.Width = new GridLength(0);
+    }
+
+    private void ScriptEditorHideChecker_Checked(object sender, RoutedEventArgs e)
+    {
+        RightCol.Width = new GridLength(RightCol.MaxWidth);
     }
 
     private void ScriptEditorHideChecker_Unchecked(object sender, RoutedEventArgs e)
