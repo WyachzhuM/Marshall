@@ -1,6 +1,7 @@
 ﻿// Leia - Yuyoyuppe(ゆよゆっぺ)
 
 using MarshallApp.Models;
+using MarshallApp.Services;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -12,7 +13,7 @@ namespace MarshallApp;
 public partial class MainWindow : Window, INotifyPropertyChanged
 {
     private readonly AppConfig appConfig;
-    private readonly List<BlockElement> blocks = new();
+    private readonly List<BlockElement> blocks = [];
 
     public MainWindow()
     {
@@ -49,7 +50,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void UpdateLayoutGrid()
     {
         int total = MStackPanel.Children.Count;
-        if (total == 0) return;
+        if(total == 0) return;
 
         int columns = (int)Math.Ceiling(Math.Sqrt(total));
         int rows = (int)Math.Ceiling((double)total / columns);
@@ -57,12 +58,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         MStackPanel.RowDefinitions.Clear();
         MStackPanel.ColumnDefinitions.Clear();
 
-        for (int i = 0; i < rows; i++)
+        for(int i = 0; i < rows; i++)
             MStackPanel.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        for (int j = 0; j < columns; j++)
+        for(int j = 0; j < columns; j++)
             MStackPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-        for (int i = 0; i < total; i++)
+        for(int i = 0; i < total; i++)
         {
             var element = MStackPanel.Children[i];
             Grid.SetRow(element, i / columns);
@@ -141,7 +142,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         RightCol.Width = new GridLength(0);
     }
-    
+
     public bool LeftPanelVisible => LeftCol.Width != new GridLength(0);
     public bool RightPanelVisible => RightCol.Width != new GridLength(0);
     #endregion
@@ -150,12 +151,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void SaveAppConfig()
     {
-        appConfig.WindowWidth = this.Width;
-        appConfig.WindowHeight = this.Height;
+        appConfig.WindowWidth = Width;
+        appConfig.WindowHeight = Height;
         appConfig.PanelState = new PanelState(LeftCol.Width.Value, RightCol.Width.Value);
 
         appConfig.Blocks.Clear();
-        foreach (var block in blocks)
+        foreach(var block in blocks)
         {
             appConfig.Blocks.Add(new BlockConfig
             {
@@ -170,7 +171,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void LoadAllConfigs()
     {
-        foreach (var cfg in appConfig.Blocks)
+        foreach(var cfg in appConfig.Blocks)
         {
             var block = new BlockElement(RemoveBlockElement)
             {
@@ -182,7 +183,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             blocks.Add(block);
             MStackPanel.Children.Add(block);
 
-            if (!string.IsNullOrEmpty(block.pythonFilePath) && File.Exists(block.pythonFilePath))
+            if(!string.IsNullOrEmpty(block.pythonFilePath) && File.Exists(block.pythonFilePath))
             {
                 block.SetFileNameText();
                 block.RunPythonScript();

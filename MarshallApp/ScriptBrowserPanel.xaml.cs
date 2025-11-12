@@ -10,7 +10,7 @@ public partial class ScriptBrowserPanel : UserControl
     public event Action<string>? ScriptSelected;
     public event Action<string>? ScriptOpenInNewPanel;
 
-    private string scriptsFolder = "Scripts";
+    private readonly string scriptsFolder = "Scripts";
 
     public ScriptBrowserPanel()
     {

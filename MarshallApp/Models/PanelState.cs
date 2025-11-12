@@ -1,14 +1,8 @@
 ﻿namespace MarshallApp.Models
 {
-    public class PanelState
+    public class PanelState(double leftWidth, double rightWidth)
     {
-        public PanelState(double leftWidth, double rightWidth)
-        {
-            LeftWidth = leftWidth;
-            RightWidth = rightWidth;
-        }
-
-        public double LeftWidth { get; set; }
-        public double RightWidth { get; set; }
+        public double LeftWidth { get; set; } = leftWidth;
+        public double RightWidth { get; set; } = rightWidth;
     }
 }

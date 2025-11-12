@@ -123,7 +123,7 @@ public partial class BlockElement : UserControl
         }
     }
 
-    private async Task<bool> InstallPythonPackage(string package)
+    private static async Task<bool> InstallPythonPackage(string package)
     {
         try
         {
@@ -154,7 +154,7 @@ public partial class BlockElement : UserControl
         }
     }
 
-    private string? ParseMissingModule(string errorText)
+    private static string? ParseMissingModule(string errorText)
     {
         int start = errorText.IndexOf("No module named '");
         if (start == -1)
@@ -164,7 +164,7 @@ public partial class BlockElement : UserControl
         int end = errorText.IndexOf("'", start);
         if (end == -1)
             return null;
-        return errorText.Substring(start, end - start);
+        return errorText[start..end];
     }
 
     private void StopActiveProcess()

@@ -2,32 +2,32 @@
 using System.IO;
 using System.Text.Json;
 
-namespace MarshallApp
+namespace MarshallApp.Services;
+
+public static class ConfigManager
 {
-    public static class ConfigManager
+    private static readonly string ConfigPath = "app_config.json";
+    private static readonly JsonSerializerOptions options = new() { WriteIndented = true };
+
+    public static void Save(AppConfig config)
     {
-        private static readonly string ConfigPath = "app_config.json";
+        var json = JsonSerializer.Serialize(config, options);
+        File.WriteAllText(ConfigPath, json);
+    }
 
-        public static void Save(AppConfig config)
+    public static AppConfig Load()
+    {
+        if (!File.Exists(ConfigPath))
+            return new AppConfig();
+
+        try
         {
-            var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(ConfigPath, json);
+            var json = File.ReadAllText(ConfigPath);
+            return JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
         }
-
-        public static AppConfig Load()
+        catch
         {
-            if (!File.Exists(ConfigPath))
-                return new AppConfig();
-
-            try
-            {
-                var json = File.ReadAllText(ConfigPath);
-                return JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
-            }
-            catch
-            {
-                return new AppConfig();
-            }
+            return new AppConfig();
         }
     }
 }

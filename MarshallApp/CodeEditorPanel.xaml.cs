@@ -42,13 +42,13 @@ public partial class CodeEditorPanel : UserControl
 
     private void NewButton_Click(object sender, RoutedEventArgs e)
     {
-        if (ConfirmUnsavedChanges())
+        if(ConfirmUnsavedChanges())
             NewScript();
     }
 
     private void OpenButton_Click(object sender, RoutedEventArgs e)
     {
-        if (!ConfirmUnsavedChanges())
+        if(!ConfirmUnsavedChanges())
             return;
 
         var dlg = new Microsoft.Win32.OpenFileDialog
@@ -57,7 +57,7 @@ public partial class CodeEditorPanel : UserControl
             Filter = "Python files (*.py)|*.py|All files (*.*)|*.*"
         };
 
-        if (dlg.ShowDialog() == true)
+        if(dlg.ShowDialog() == true)
             LoadScript(dlg.FileName);
     }
 
@@ -65,7 +65,7 @@ public partial class CodeEditorPanel : UserControl
     {
         string code = Editor.Text;
 
-        if (currentFilePath == null || saveAs)
+        if(currentFilePath == null || saveAs)
         {
             var dlg = new Microsoft.Win32.SaveFileDialog
             {
@@ -73,7 +73,7 @@ public partial class CodeEditorPanel : UserControl
                 Filter = "Python files (*.py)|*.py",
                 FileName = FileNameText.Text
             };
-            if (dlg.ShowDialog() == true)
+            if(dlg.ShowDialog() == true)
             {
                 currentFilePath = dlg.FileName;
                 FileNameText.Text = Path.GetFileName(currentFilePath);
@@ -90,13 +90,13 @@ public partial class CodeEditorPanel : UserControl
 
     private bool ConfirmUnsavedChanges()
     {
-        if (!string.IsNullOrWhiteSpace(Editor.Text))
+        if(!string.IsNullOrWhiteSpace(Editor.Text))
         {
             var result = MessageBox.Show("Save changes before continuing?",
                 "Confirm", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 
-            if (result == MessageBoxResult.Cancel) return false;
-            if (result == MessageBoxResult.Yes) SaveScript(false);
+            if(result == MessageBoxResult.Cancel) return false;
+            if(result == MessageBoxResult.Yes) SaveScript(false);
         }
         return true;
     }
@@ -104,7 +104,7 @@ public partial class CodeEditorPanel : UserControl
     private T? FindParent<T>() where T : DependencyObject
     {
         DependencyObject parent = this;
-        while (parent != null && !(parent is T))
+        while(parent != null && parent is not T)
             parent = VisualTreeHelper.GetParent(parent);
         return parent as T;
     }
