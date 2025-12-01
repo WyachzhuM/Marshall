@@ -4,7 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MarshallApp"
-        xmlns:resource="clr-namespace:MarshallApp.Resource"
         xmlns:chrome="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         mc:Ignorable="d"
         Height="800" Width="1200" 
@@ -23,7 +22,7 @@
     </WindowChrome.WindowChrome>
     
     <Window.Resources>
-        <Style x:Key="TitleBarButtonStyle" TargetType="Button">
+        <Style TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#CCFFFFFF"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>

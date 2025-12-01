@@ -47,14 +47,14 @@
                                     Style="{StaticResource FlatImageButtonStyle}"
                                     Click="ToggleLoop_Click" Width="20" Height="20" ToolTip="Loop settings">
                                 <Button.Background>
-                                    <ImageBrush ImageSource="/Resource/Icons/loop.png"/>
+                                    <ImageBrush x:Name="LoopIconImage" ImageSource="/Resource/Icons/loop.png"/>
                                 </Button.Background>
                             </Button>
                             <Button x:Name="InputToggleButton"
                                     Style="{StaticResource FlatImageButtonStyle}"
                                     Click="ToggleInput_Click" Width="20" Height="20" ToolTip="Input field">
                                 <Button.Background>
-                                    <ImageBrush ImageSource="/Resource/Icons/input.png"/>
+                                    <ImageBrush x:Name="InputIconImage" ImageSource="/Resource/Icons/input.png"/>
                                 </Button.Background>
                             </Button>
                         </StackPanel>

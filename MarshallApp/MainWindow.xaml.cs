@@ -11,7 +11,7 @@ using MarshallApp.Controllers;
 
 namespace MarshallApp;
 
-public partial class MainWindow : Window, INotifyPropertyChanged
+public partial class MainWindow : INotifyPropertyChanged
 {
     private bool _isRestoring;
     private readonly AppConfig _appConfig;
@@ -264,7 +264,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
-    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+    public void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
     private void Fullscreen_Click(object sender, RoutedEventArgs e)

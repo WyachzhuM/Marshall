@@ -4,7 +4,7 @@ using System.Windows;
 
 namespace MarshallApp;
 
-public partial class About : Window
+public partial class About
 {
     public static About? Instance;
     public About()

@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+    <PackageReference Include="System.Management" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -90,6 +91,14 @@
     </Content>
     <None Remove="Resource\Icons\funnyIcon.png" />
     <Content Include="Resource\Icons\funnyIcon.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Resource\Icons\inputGreen.png" />
+    <Content Include="Resource\Icons\inputGreen.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Resource\Icons\loopGreen.png" />
+    <Content Include="Resource\Icons\loopGreen.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

@@ -1,11 +1,10 @@
 ﻿using System.IO;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace MarshallApp;
 
-public partial class CodeEditorPanel : UserControl
+public partial class CodeEditorPanel
 {
     private string? _currentFilePath;
     private const string ScriptsFolder = "Scripts";

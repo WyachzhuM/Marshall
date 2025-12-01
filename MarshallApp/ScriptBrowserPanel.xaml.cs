@@ -5,7 +5,7 @@ using System.Windows.Controls;
 
 namespace MarshallApp;
 
-public partial class ScriptBrowserPanel : UserControl
+public partial class ScriptBrowserPanel
 {
     public event Action<string>? ScriptSelected;
     public event Action<string>? ScriptOpenInNewPanel;
@@ -77,7 +77,7 @@ public partial class ScriptBrowserPanel : UserControl
         }
     }
 
-    private void ScriptList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    public void ScriptList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (ScriptList.SelectedItem is not string fileName) return;
         var fullPath = Path.Combine(ScriptsFolder, fileName); 
