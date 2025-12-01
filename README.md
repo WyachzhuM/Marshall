@@ -1,8 +1,10 @@
 # Marshall: Python Script Management Application
 
-![Marshall Preview](https://github.com/user-attachments/assets/37691958-c9a0-4328-b2aa-b1821bafd328)
+<img width="50" height="50" alt="Icon" src="https://github.com/user-attachments/assets/efe29f1c-7319-49d0-8afd-36bd89cf239e" />
 
 [**Marshall**](https://github.com/LPLP-ghacc/Marshall/releases) is a desktop application built on WPF (.NET 8) designed for managing and executing Python scripts in a modular, visual interface. Each script runs in an independent block, supporting features such as automatic restarts at configurable intervals, state persistence across sessions, and real-time output monitoring. The application serves as a tool for automating tasks and integrating Python scripts into a controlled environment.
+
+![Marshall Preview](https://github.com/user-attachments/assets/37691958-c9a0-4328-b2aa-b1821bafd328)
 
 ## Key Features
 
@@ -25,4 +27,4 @@
 - **Permissions**: Administrative rights for `pip` package installations (for auto-module fixes)
 
   
-<img width="500" height="500" alt="Icon" src="https://github.com/user-attachments/assets/efe29f1c-7319-49d0-8afd-36bd89cf239e" />
+
