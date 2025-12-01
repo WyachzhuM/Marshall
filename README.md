@@ -1,30 +1,25 @@
-# Marshall
+# Marshall: Python Script Management Application
 
-**[Marshall](https://github.com/LPLP-ghacc/Marshall/releases)** is a desktop application based on **WPF (.NET 7)**, which allows you to manage and run Python scripts in convenient visual blocks.  
-Each block can execute a separate script, restart automatically at a preset interval, and also save its state between program launches.
+![Marshall Preview](https://github.com/user-attachments/assets/37691958-c9a0-4328-b2aa-b1821bafd328)
 
-The Marshall application is designed as a tool for automating and adding Python scripts to a virtual environment.
+[**Marshall**](https://github.com/LPLP-ghacc/Marshall/releases) is a desktop application built on WPF (.NET 8) designed for managing and executing Python scripts in a modular, visual interface. Each script runs in an independent block, supporting features such as automatic restarts at configurable intervals, state persistence across sessions, and real-time output monitoring. The application serves as a tool for automating tasks and integrating Python scripts into a controlled environment.
 
-## ⚙️ How to use
+## Key Features
 
-1. **Make sure that [Python 3+](https://www.python.org/downloads/release/python-3925/)** is installed and added to the PATH.  
-2. Launch Marshall App.
-3. Add a new block in the upper panel.
-4. In the "Edit" menu, select your `.py` file.
-5. If the `.py` script requires text input, there is a text input button for this.
-6. If necessary, enable **startup cycling** and set the interval.  
-7. The state is saved automatically — the next time you start, everything will be restored.
-
-🧱 Requirements
-
-Windows 10/11
-.NET 7.0
-Python 3.8+
-Rights to install packages via pip
-<img width="1434" height="565" alt="изображение" src="https://github.com/user-attachments/assets/37691958-c9a0-4328-b2aa-b1821bafd328" />
+- **Modular Blocks**: Create, rearrange, and remove blocks for individual Python scripts via drag-and-drop.
+- **Looping Execution**: Enable automatic script restarts with user-defined intervals in seconds.
+- **Automatic Module Installation**: Detects and installs missing Python modules using `pip` during runtime.
+- **Interactive Input**: Supports real-time text input for scripts requiring user interaction.
+- **Process Management**: Utilizes Job Objects for reliable process termination and cleanup.
+- **State Persistence**: Automatically saves and restores script paths, loop settings, and block layouts.
+- **System Tray Integration**: Provides a tray icon with a menu listing active scripts (upcoming enhancement).
+- **Customizable Settings**: Includes resource limits (CPU/RAM), auto-start with Windows, font customization, window opacity, and more.
+- **Additional Tools**: Automatic Python installation prompt, output copying, and error notifications.
 
 
+## System Requirements
 
-
-
-
+- **Operating System**: Windows 10/11 (64-bit)
+- **Framework**: .NET 8.0 Runtime
+- **Python**: 3.8+ (must be in PATH)
+- **Permissions**: Administrative rights for `pip` package installations (for auto-module fixes)
