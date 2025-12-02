@@ -1,0 +1,32 @@
+{
+  "Blocks": [
+    {
+      "PythonFilePath": null,
+      "IsLooping": false,
+      "LoopIntervalSeconds": 5,
+      "OutputFontSize": 14
+    }
+  ],
+  "PanelState": {
+    "LeftWidth": 0,
+    "LeftUnitType": 1,
+    "RightWidth": 0,
+    "RightUnitType": 1,
+    "Left": {
+      "IsAbsolute": true,
+      "IsAuto": false,
+      "IsStar": false,
+      "Value": 0,
+      "GridUnitType": 1
+    },
+    "Right": {
+      "IsAbsolute": true,
+      "IsAuto": false,
+      "IsStar": false,
+      "Value": 0,
+      "GridUnitType": 1
+    }
+  },
+  "WindowWidth": 862,
+  "WindowHeight": 494
+}

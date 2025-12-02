@@ -6,12 +6,12 @@ namespace MarshallApp.Services;
 
 public static class ConfigManager
 {
-    private static readonly string ConfigPath = "app_config.json";
-    private static readonly JsonSerializerOptions options = new() { WriteIndented = true };
+    private const string ConfigPath = "app_config.json";
+    private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
     public static void Save(AppConfig config)
     {
-        var json = JsonSerializer.Serialize(config, options);
+        var json = JsonSerializer.Serialize(config, Options);
         File.WriteAllText(ConfigPath, json);
     }
 

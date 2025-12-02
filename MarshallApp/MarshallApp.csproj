@@ -110,6 +110,10 @@
     <Content Include="Resource\Icons\IconSmall.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <None Remove="app_config.json" />
+    <Content Include="app_config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

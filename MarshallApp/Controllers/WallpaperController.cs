@@ -24,7 +24,6 @@ public class WallpaperController
         var rnd = new Random();
         var current = rnd.Next(0, _imageSet.Count);
         _brush.ImageSource = new BitmapImage(new Uri(Path.Combine(_workingDirectory, _imageSet[current])));
-        Console.WriteLine("New background set, from: " + _brush.ImageSource);
     }
 
     private List<string> GetImages()
