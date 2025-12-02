@@ -487,16 +487,25 @@ public partial class BlockElement
     #region --- JOB OBJECT KILL TREE ---
 
     [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+#pragma warning disable SYSLIB1054
     private static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
+#pragma warning restore SYSLIB1054
 
     [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+#pragma warning disable SYSLIB1054
+    // ReSharper disable once InconsistentNaming
     private static extern bool SetInformationJobObject(IntPtr hJob, int JobObjectInfoClass, ref JOBOBJECT_EXTENDED_LIMIT_INFORMATION lpJobObjectInfo, int cbJobObjectInfoLength);
+#pragma warning restore SYSLIB1054
 
     [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+#pragma warning disable SYSLIB1054
     private static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
+#pragma warning restore SYSLIB1054
 
     private IntPtr _jobHandle;
 
+    // ReSharper disable once ArrangeTypeMemberModifiers
+    // ReSharper disable once InconsistentNaming
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     struct JOBOBJECT_BASIC_LIMIT_INFORMATION
     {
@@ -511,6 +520,8 @@ public partial class BlockElement
         public int SchedulingClass;
     }
 
+    // ReSharper disable once ArrangeTypeMemberModifiers
+    // ReSharper disable once InconsistentNaming
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     struct IO_COUNTERS
     {
@@ -522,6 +533,8 @@ public partial class BlockElement
         public ulong OtherTransferCount;
     }
 
+    // ReSharper disable once ArrangeTypeMemberModifiers
+    // ReSharper disable once InconsistentNaming
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION
     {
@@ -533,11 +546,15 @@ public partial class BlockElement
         public UIntPtr PeakJobMemoryUsed;
     }
 
+    // ReSharper disable once InconsistentNaming
     private const int JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9;
+    // ReSharper disable once InconsistentNaming
     private const int JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000;
     
     [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+#pragma warning disable SYSLIB1054
     private static extern bool CloseHandle(IntPtr hObject);
+#pragma warning restore SYSLIB1054
 
     #endregion
     
@@ -597,7 +614,6 @@ public partial class BlockElement
 
     private void CallLogViewer_Click(object sender, RoutedEventArgs e)
     {
-        MainWindow.Instance.ShowLogViewer(this);
+        MainWindow.Instance?.ShowLogViewer(this);
     }
 }
-

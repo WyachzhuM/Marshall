@@ -62,7 +62,7 @@ public partial class CodeEditorPanel
 
     private void SaveScript(bool saveAs)
     {
-        string code = Editor.Text;
+        var code = Editor.Text;
 
         if(_currentFilePath == null || saveAs)
         {

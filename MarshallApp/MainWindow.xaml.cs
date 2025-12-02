@@ -20,7 +20,7 @@ namespace MarshallApp;
 
 public partial class MainWindow : INotifyPropertyChanged
 {
-    private NotifyIcon _trayIcon;
+    private NotifyIcon? _trayIcon;
     
     private bool _isRestoring;
     private readonly AppConfig _appConfig;
@@ -31,7 +31,7 @@ public partial class MainWindow : INotifyPropertyChanged
     public void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     
-    public static MainWindow Instance { get; set; }
+    public static MainWindow? Instance { get; private set; }
 
     public MainWindow()
     {
@@ -81,7 +81,7 @@ public partial class MainWindow : INotifyPropertyChanged
     {
         if (e.Button != MouseButtons.Left && e.Button != MouseButtons.Right) return;
 
-        var menu = _trayIcon.ContextMenuStrip;
+        var menu = _trayIcon?.ContextMenuStrip;
         Debug.Assert(menu != null, nameof(menu) + " != null");
         
         menu.Items.Clear();
