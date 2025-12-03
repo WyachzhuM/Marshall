@@ -4,7 +4,8 @@
 
 [**Marshall**](https://github.com/LPLP-ghacc/Marshall/releases) is a desktop application built on WPF (.NET 8) designed for managing and executing Python scripts in a modular, visual interface. Each script runs in an independent block, supporting features such as automatic restarts at configurable intervals, state persistence across sessions, and real-time output monitoring. The application serves as a tool for automating tasks and integrating Python scripts into a controlled environment.
 
-![Marshall Preview](https://github.com/user-attachments/assets/37691958-c9a0-4328-b2aa-b1821bafd328)
+<img width="1537" height="779" alt="изображение" src="https://github.com/user-attachments/assets/2105f2a1-48f2-4774-bd50-0e1ee6002d0a" />
+
 
 ## Key Features
 
