@@ -32,10 +32,10 @@ public partial class ScriptBrowserPanel
             {
                 Content = fileNameNoExt,
                 Tag = file,
-                Margin = new Thickness(0),
+                Margin = new Thickness(3),
                 Height = 30,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                HorizontalContentAlignment = HorizontalAlignment.Center,
+                HorizontalContentAlignment = HorizontalAlignment.Left,
                 Padding = new Thickness(6, 3, 6, 3),
                 Style = (Style?)Application.Current.FindResource("FlatButtonStyle")
             };
@@ -81,7 +81,8 @@ public partial class ScriptBrowserPanel
                 }
                 catch
                 {
-                    // ignored
+                    if (MainWindow.Instance != null)
+                        MainWindow.Instance.RightCol.Width = new GridLength(500);
                 }
             };
 
@@ -97,4 +98,9 @@ public partial class ScriptBrowserPanel
     }
 
     public void RefreshScripts() => LoadScripts();
+
+    private void RefreshButton_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshScripts();
+    }
 }

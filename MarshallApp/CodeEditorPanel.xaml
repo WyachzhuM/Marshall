@@ -31,8 +31,7 @@
                            Foreground="#D4D4D4"
                            ShowLineNumbers="True"
                            ScrollViewer.VerticalScrollBarVisibility="Auto"
-                           ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                           >
+                           ScrollViewer.HorizontalScrollBarVisibility="Hidden">
             
         </avalon:TextEditor>
     </Grid>

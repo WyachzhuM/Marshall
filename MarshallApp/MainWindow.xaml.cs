@@ -262,7 +262,14 @@ public partial class MainWindow : INotifyPropertyChanged
     private void ScriptEditorHideChecker_Checked(object sender, RoutedEventArgs e)
     {
         if (_isRestoring) return;
-        RightCol.Width = new GridLength(RightCol.MaxWidth);
+        try
+        {
+            RightCol.Width = new GridLength(RightCol.MaxWidth);
+        }
+        catch
+        {
+            RightCol.Width = new GridLength(500);
+        }
     }
 
     private void ScriptEditorHideChecker_Unchecked(object sender, RoutedEventArgs e)

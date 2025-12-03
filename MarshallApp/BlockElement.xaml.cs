@@ -43,7 +43,7 @@ public partial class BlockElement
         this.Unloaded += (_, _) => StopActiveProcess();
     }
     
-    public void RunPythonScript()
+    public async Task RunPythonScript()
     {
         StopActiveProcess();
 
@@ -79,6 +79,8 @@ public partial class BlockElement
                 }
             };
 
+            CodeViewer.Text = await File.ReadAllTextAsync(PythonFilePath);
+
             _activeProcess = new Process { StartInfo = psi, EnableRaisingEvents = true };
             _activeProcess.Start();
 
@@ -101,7 +103,7 @@ public partial class BlockElement
                         {
                             if (_pendingClear)
                             {
-                                OutputText.Text = string.Empty;  // чистим только один раз!
+                                OutputText.Text = string.Empty;
                                 _pendingClear = false;
                             }
                             

@@ -45,13 +45,27 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
-        <TextBlock Text="Browser" Foreground="White" FontWeight="Bold" Margin="10" FontSize="14"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+            <TextBlock Text="Browser" Foreground="White" FontWeight="Bold" Margin="10" FontSize="14"/>
+        </StackPanel>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Style="{StaticResource FlatButtonStyle}" Width="20" Height="20" Margin="3" Click="RefreshButton_Click">
+                <Path 
+                    Stretch="Uniform"
+                    Stroke="#CCFFFFFF" 
+                    StrokeThickness="3"
+                    StrokeLineJoin="Round"
+                    Data="M12 2A10 10 0 1 0 22 12H19 L23 8L27 12H24A12 12 0 1 1 12 0Z"/>
+            </Button>
+        </StackPanel>
         <ListBox x:Name="ScriptList"
                  Grid.Row="1"
                  Background="{StaticResource PanelsBrush}"
                  Foreground="White"
                  Margin="5"
                  HorizontalContentAlignment="Stretch"
+                 Style="{StaticResource ModernListBoxStyle}"
+                 ItemContainerStyle="{StaticResource ModernListBoxItemStyle}"
                  ScrollViewer.VerticalScrollBarVisibility="Auto"
                  ScrollViewer.HorizontalScrollBarVisibility="Hidden">
             <ListBox.Resources>
