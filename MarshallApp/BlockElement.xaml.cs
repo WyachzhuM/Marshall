@@ -15,13 +15,14 @@ namespace MarshallApp;
 
 public partial class BlockElement
 {
+    public string? PythonFilePath;
+    public bool IsLooping;
+    public double LoopInterval { get; set; } = 5.0;
     public bool IsRunning => _activeProcess is { HasExited: false };
     private readonly string _iconsPath;
     private CancellationTokenSource? _cts;
     private readonly Action<BlockElement>? _removeCallback;
-    public string? PythonFilePath;
-    public bool IsLooping;
-    public double LoopInterval { get; set; } = 5.0;
+
     private DispatcherTimer? _loopTimer;
     private Process? _activeProcess;
     private bool _isInputVisible;
@@ -31,6 +32,10 @@ public partial class BlockElement
     private readonly LimitSettings _limitSettings;
     public double OutputFontSize { get; set; } = 14.0;
 
+    public Action<Process>? OnProcessExited;
+    public Action<Process>? OnProcessStart;
+    public Action? OnProcessKilled;
+    
     public BlockElement(Action<BlockElement>? removeCallback, LimitSettings limitSettings)
     {
         InitializeComponent();
@@ -88,108 +93,83 @@ public partial class BlockElement
 
             _activeProcess = new Process { StartInfo = psi, EnableRaisingEvents = true };
             _activeProcess.Start();
+            OnProcessStart?.Invoke(_activeProcess);
 
             // Create JobObject if not created yet
             CreateJobObject();
             AssignProcessToJobObject(_jobHandle, _activeProcess.Handle);
             
-            await Task.Run(async () =>
-            {
-                try
-                {
-                    using var reader = _activeProcess.StandardOutput;
-                    var buffer = new char[1024];
-                    int charsRead;
-                    
-                    while ((charsRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                    {
-                        var text = new string(buffer, 0, charsRead);
-                        Dispatcher.Invoke(() =>
-                        {
-                            if (_pendingClear)
-                            {
-                                OutputText.Text = string.Empty;
-                                _pendingClear = false;
-                            }
-                            
-                            var cleaned = text.Replace("\r", "\n").Replace("\n\n", "\n");
-                            OutputText.Text += cleaned;
-                            Scroll.ScrollToEnd();
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    SendExceptionMessage(ex);
-                }
-            }, _cts.Token);
+            await Task.Run(ReadOutOutput, _cts.Token);
             
-            await Task.Run(async () =>
-            {
-                try
-                {
-                    using var reader = _activeProcess.StandardError;
-                    var buffer = new char[1024];
-                    int charsRead;
-            
-                    while ((charsRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                    {
-                        var text = new string(buffer, 0, charsRead);
-            
-                        if (text.Contains("No module named"))
-                        {
-                            var missingModule = ParseMissingModule(text);
-                            if (string.IsNullOrEmpty(missingModule)) continue;
-                            Dispatcher.Invoke(() => OutputText.Text += $"\n[AutoFix] Installing missing module: {missingModule}...\n");
-                            var installed = await InstallPythonPackage(missingModule);
-                            if (installed)
-                            {
-                                Dispatcher.Invoke(() => OutputText.Text += $"[AutoFix] Successfully installed {missingModule}. Restarting script...\n");
-                                await Dispatcher.Invoke(RunPythonScript);
-                            }
-                            else
-                            {
-                                Dispatcher.Invoke(() => OutputText.Text += $"[AutoFix] Failed to install {missingModule}.\n");
-                            }
-                        }
-            
-                        Dispatcher.Invoke(() =>
-                        {
-                            var cleaned = text.Replace("\r", "\n");
-                            OutputText.Text += cleaned;
-                            Scroll.ScrollToEnd();
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    SendExceptionMessage(ex);
-                }
-            }, _cts.Token);
+            await Task.Run(ReadOutError, _cts.Token);
 
             _activeProcess.Exited += (_, _) =>
             {
-                Dispatcher.Invoke(() =>
-                {
-
-                });
+                OnProcessExited?.Invoke(_activeProcess);
             };
         }
         catch (Exception ex)
         {
-            OutputText.Text = $"Python startup error:\n{ex.Message}";
+            SendExceptionMessage(ex);
         }
     }
-    
-    private static void OpenPythonInstallerPage()
+
+    private async void ReadOutOutput()
     {
-        if (!IsPythonInstalled())
+        try
         {
-            Process.Start(new ProcessStartInfo
+            using var reader = _activeProcess?.StandardOutput;
+            var buffer = new char[1024];
+            int charsRead;
+                    
+            while ((charsRead = await reader?.ReadAsync(buffer, 0, buffer.Length)!) > 0)
             {
-                FileName = "https://www.python.org/downloads/",
-                UseShellExecute = true
-            });
+                var text = new string(buffer, 0, charsRead);
+                Dispatcher.Invoke(() =>
+                {
+                    if (_pendingClear)
+                    {
+                        OutputText.Text = string.Empty;
+                        _pendingClear = false;
+                    }
+                            
+                    var cleaned = text.Replace("\r", "\n").Replace("\n\n", "\n");
+                    OutputText.Text += cleaned;
+                    Scroll.ScrollToEnd();
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            SendExceptionMessage(ex);
+        }
+    }
+
+    private async void ReadOutError()
+    {
+        try
+        {
+            using var reader = _activeProcess?.StandardError;
+            var buffer = new char[1024];
+            int charsRead;
+            
+            while ((charsRead = await reader?.ReadAsync(buffer, 0, buffer.Length)!) > 0)
+            {
+                var text = new string(buffer, 0, charsRead);
+
+                AutoInstallMissingModule(text);
+            
+                Dispatcher.Invoke(() =>
+                {
+                    var cleaned = text.Replace("\r", "\n");
+                    OutputText.Text += cleaned;
+                    Scroll.ScrollToEnd();
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            SendExceptionMessage(ex);
         }
     }
 
@@ -239,8 +219,47 @@ public partial class BlockElement
     }
 
     #region Python things
+    
+    private async void AutoInstallMissingModule(string output)
+    {
+        try
+        {
+            if (!output.Contains("No module named")) return;
+            
+            var missingModule = ParseMissingModule(output);
+            if (string.IsNullOrEmpty(missingModule)) return;
+            
+            Dispatcher.Invoke(() => OutputText.Text += $"\n[AutoFix] Installing missing module: {missingModule}...\n");
+            var installed = await InstallPythonPackage(missingModule);
+            if (installed)
+            {
+                Dispatcher.Invoke(() => OutputText.Text += $"[AutoFix] Successfully installed {missingModule}. Restarting script...\n");
+                await Dispatcher.Invoke(RunPythonScript);
+            }
+            else
+            {
+                Dispatcher.Invoke(() => OutputText.Text += $"[AutoFix] Failed to install {missingModule}.\n");
+            }
+        }
+        catch (Exception ex)
+        {
+            SendExceptionMessage(ex);
+        }
+    }
+    
+    private static void OpenPythonInstallerPage()
+    {
+        if (!IsPythonInstalled())
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://www.python.org/downloads/",
+                UseShellExecute = true
+            });
+        }
+    }
 
-        private static async Task<bool> InstallPythonPackage(string package)
+    private static async Task<bool> InstallPythonPackage(string package)
     {
         try
         {
@@ -260,7 +279,6 @@ public partial class BlockElement
             using var process = new Process();
             process.StartInfo = psi;
             process.Start();
-            //var output = await process.StandardOutput.ReadToEndAsync();
             var error = await process.StandardError.ReadToEndAsync();
             var success = !error.Contains("ERROR", StringComparison.OrdinalIgnoreCase);
             
@@ -342,6 +360,8 @@ public partial class BlockElement
             _activeProcess?.Dispose();
             _activeProcess = null;
         }
+        
+        OnProcessKilled?.Invoke();
     }
 
     #endregion
@@ -403,6 +423,7 @@ public partial class BlockElement
         UpdatePeriodTimeTextBlock();
         UpdateLoopStatus();
     }
+    
     private void UpdateLoopIcon(bool isLooping)
     {
         var iconName = isLooping ? "loopGreen.png" : "loop.png";
@@ -486,7 +507,6 @@ public partial class BlockElement
 
         e.Handled = true;
     }
-    
     
     private void OnOutputLoaded(object sender, RoutedEventArgs e)
     {
