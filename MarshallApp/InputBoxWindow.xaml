@@ -18,7 +18,7 @@
 
             <Border Background="{StaticResource PanelsBrush}" MouseLeftButtonDown="TopBar_MouseDown">
                 <Grid>
-                    <TextBlock x:Name="Title" Text="SAMPLE" Foreground="White" FontSize="16" FontWeight="Bold"
+                    <TextBlock x:Name="Title" Text="SAMPLE" Foreground="{StaticResource AdditionalBrush2}" FontSize="16" FontWeight="Bold"
                                VerticalAlignment="Center" Margin="16,0"/>
                 </Grid>
             </Border>
@@ -34,7 +34,7 @@
                         <ColumnDefinition />
                     </Grid.ColumnDefinitions>
                     <Grid>
-                        <TextBlock x:Name="DescTextField" Text="SAMPLE" Foreground="White" FontSize="12" FontWeight="Bold" VerticalAlignment="Top" Margin="10"/>
+                        <TextBlock x:Name="DescTextField" Text="SAMPLE" Foreground="{StaticResource AdditionalBrush2}" FontSize="12" FontWeight="Bold" VerticalAlignment="Top" Margin="10"/>
                     </Grid>
                     <Grid Column="1">
                         <StackPanel>
@@ -51,7 +51,7 @@
                 <Grid Row="1">
                     <Border BorderThickness="1" BorderBrush="#2b2b2b" Margin="10,5,10,10">
                         <TextBox x:Name="Input" Background="{StaticResource PrimaryBrush}" 
-                                   Foreground="White" 
+                                   Foreground="{StaticResource AdditionalBrush2}" 
                                    Text="60" 
                                    FontWeight="Bold" 
                                    VerticalAlignment="Center" />

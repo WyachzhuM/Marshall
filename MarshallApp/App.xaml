@@ -353,14 +353,14 @@
         <Brush x:Key="PanelsBrush2">#252526</Brush>
         <Color x:Key="AdditionalColor">#333</Color>
         <Brush x:Key="AdditionalBrush">#333</Brush>
-        <Color x:Key="AdditionalColo2">#222</Color>
+        <Color x:Key="AdditionalColor2">#222</Color>
         <Brush x:Key="AdditionalBrush2">#222</Brush>
         <Color x:Key="PrimaryAccentColor">DarkRed</Color>
         <Brush x:Key="PrimaryAccentBrush">DarkRed</Brush>
         <Color x:Key="PrimaryColorA">#6B4E2C</Color>
         <Brush x:Key="PrimaryBrushA">#111</Brush>
-        <Color x:Key="PrimaryTextColor">#FFBDBDBD</Color>
-        <Brush x:Key="PrimaryTextBrush">#FFBDBDBD</Brush>
+        <Color x:Key="PrimaryTextColor">#fff</Color>
+        <Brush x:Key="PrimaryTextBrush">#fff</Brush>
     </Application.Resources>
     
     

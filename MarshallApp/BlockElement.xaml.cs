@@ -2,13 +2,14 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using MarshallApp.Models;
+using MarshallApp.Services;
+
 // ReSharper disable InconsistentNaming
 
 namespace MarshallApp;
@@ -22,17 +23,16 @@ public partial class BlockElement
     private readonly string _iconsPath;
     private CancellationTokenSource? _cts;
     private readonly Action<BlockElement>? _removeCallback;
-
+    private readonly JobManager _jobManager;
     private DispatcherTimer? _loopTimer;
     private Process? _activeProcess;
     private bool _isInputVisible;
     private Point _dragStart;
     private bool _isDragging;
     private bool _pendingClear;
-    private readonly LimitSettings _limitSettings;
     public double OutputFontSize { get; set; } = 14.0;
 
-    public Action<Process>? OnProcessExited;
+    public Action? OnProcessExited;
     public Action<Process>? OnProcessStart;
     public Action? OnProcessKilled;
     
@@ -44,7 +44,7 @@ public partial class BlockElement
         this.PreviewMouseLeftButtonDown += Block_PreviewMouseLeftButtonDown;
         
         _removeCallback = removeCallback;
-        this._limitSettings = limitSettings;
+        _jobManager = new JobManager(limitSettings);
         
         _iconsPath = Path.Combine(Environment.CurrentDirectory + "/Resource/Icons/");
         UpdateLoopIcon(IsLooping);
@@ -68,7 +68,7 @@ public partial class BlockElement
         _pendingClear = true;
         
         _cts = new CancellationTokenSource();
-
+        
         try
         {
             var psi = new ProcessStartInfo
@@ -96,17 +96,12 @@ public partial class BlockElement
             OnProcessStart?.Invoke(_activeProcess);
 
             // Create JobObject if not created yet
-            CreateJobObject();
-            AssignProcessToJobObject(_jobHandle, _activeProcess.Handle);
+            _jobManager.CreateJobObject();
+            JobManager.AssignProcessToJobObject(_jobManager.JobHandle, _activeProcess.Handle);
             
             await Task.Run(ReadOutOutput, _cts.Token);
             
             await Task.Run(ReadOutError, _cts.Token);
-
-            _activeProcess.Exited += (_, _) =>
-            {
-                OnProcessExited?.Invoke(_activeProcess);
-            };
         }
         catch (Exception ex)
         {
@@ -172,52 +167,7 @@ public partial class BlockElement
             SendExceptionMessage(ex);
         }
     }
-
-    private void CreateJobObject()
-    {
-        if (_jobHandle != IntPtr.Zero) return;
     
-        _jobHandle = CreateJobObject(IntPtr.Zero, null);
-
-        // --- MEMORY LIMIT ---
-        var info = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION();
-        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-
-        if (_limitSettings.MemoryLimitMb > 0)
-        {
-            info.BasicLimitInformation.LimitFlags |= 0x100; // JOB_OBJECT_LIMIT_PROCESS_MEMORY
-            info.ProcessMemoryLimit = (UIntPtr)(_limitSettings.MemoryLimitMb * (int)1024UL * (int)1024UL);
-        }
-
-        SetInformationJobObject(
-            _jobHandle,
-            JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
-            ref info,
-            Marshal.SizeOf<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>()
-        );
-
-        // --- CPU LIMIT ---
-        if (_limitSettings.CpuLimitPercent <= 0 || _limitSettings.CpuLimitPercent > 100) return;
-        var cpuInfo = new JOBOBJECT_CPU_RATE_CONTROL_INFORMATION
-        {
-            ControlFlags = JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP,
-            CpuRate = (uint)(_limitSettings.CpuLimitPercent * 100) // 1% = 100 (Windows API)
-        };
-
-        var size = Marshal.SizeOf(cpuInfo);
-        var ptr = Marshal.AllocHGlobal(size);
-        Marshal.StructureToPtr(cpuInfo, ptr, false);
-
-        SetInformationJobObject(
-            _jobHandle,
-            JobObjectCpuRateControlInformation,
-            ptr,
-            size
-        );
-
-        Marshal.FreeHGlobal(ptr);
-    }
-
     #region Python things
     
     private async void AutoInstallMissingModule(string output)
@@ -340,16 +290,16 @@ public partial class BlockElement
             }
 
             if (_activeProcess.HasExited) return;
-
+            OnProcessExited?.Invoke();
+            
             if (!forceKill) return;
             if (!_activeProcess.HasExited)
             {
                 _activeProcess.Kill(); 
             }
 
-            if (_jobHandle == IntPtr.Zero) return;
-            CloseHandle(_jobHandle);
-            _jobHandle = IntPtr.Zero;
+            if (_jobManager.JobHandle == IntPtr.Zero) return;
+            _jobManager.Close();
         }
         catch (Exception ex)
         {
@@ -362,6 +312,10 @@ public partial class BlockElement
         }
         
         OnProcessKilled?.Invoke();
+        
+        // Sayonara
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
     }
 
     #endregion
@@ -517,102 +471,6 @@ public partial class BlockElement
 // extension part
 public partial class BlockElement
 {
-    #region CPU LIMIT
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct JOBOBJECT_CPU_RATE_CONTROL_INFORMATION
-    {
-        public uint ControlFlags;
-        public uint CpuRate;
-    }
-
-    private const uint JOB_OBJECT_CPU_RATE_CONTROL_ENABLE = 0x1;
-    private const uint JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP = 0x4;
-    private const int JobObjectCpuRateControlInformation = 15;
-    
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool SetInformationJobObject(
-        IntPtr hJob,
-        int JobObjectInfoClass,
-        IntPtr lpJobObjectInfo,
-        int cbJobObjectInfoLength);
-
-    #endregion
-    
-    #region --- JOB OBJECT KILL TREE ---
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-#pragma warning disable SYSLIB1054
-    private static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
-#pragma warning restore SYSLIB1054
-
-    [DllImport("kernel32.dll")]
-#pragma warning disable SYSLIB1054
-    // ReSharper disable once InconsistentNaming
-    private static extern bool SetInformationJobObject(IntPtr hJob, int JobObjectInfoClass, ref JOBOBJECT_EXTENDED_LIMIT_INFORMATION lpJobObjectInfo, int cbJobObjectInfoLength);
-#pragma warning restore SYSLIB1054
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-#pragma warning disable SYSLIB1054
-    private static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
-#pragma warning restore SYSLIB1054
-
-    private IntPtr _jobHandle;
-
-    // ReSharper disable once ArrangeTypeMemberModifiers
-    // ReSharper disable once InconsistentNaming
-    [StructLayout(LayoutKind.Sequential)]
-    struct JOBOBJECT_BASIC_LIMIT_INFORMATION
-    {
-        public long PerProcessUserTimeLimit;
-        public long PerJobUserTimeLimit;
-        public int LimitFlags;
-        public UIntPtr MinimumWorkingSetSize;
-        public UIntPtr MaximumWorkingSetSize;
-        public int ActiveProcessLimit;
-        public long Affinity;
-        public int PriorityClass;
-        public int SchedulingClass;
-    }
-
-    // ReSharper disable once ArrangeTypeMemberModifiers
-    // ReSharper disable once InconsistentNaming
-    [StructLayout(LayoutKind.Sequential)]
-    struct IO_COUNTERS
-    {
-        public ulong ReadOperationCount;
-        public ulong WriteOperationCount;
-        public ulong OtherOperationCount;
-        public ulong ReadTransferCount;
-        public ulong WriteTransferCount;
-        public ulong OtherTransferCount;
-    }
-
-    // ReSharper disable once ArrangeTypeMemberModifiers
-    // ReSharper disable once InconsistentNaming
-    [StructLayout(LayoutKind.Sequential)]
-    struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION
-    {
-        public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
-        public IO_COUNTERS IoInfo;
-        public UIntPtr ProcessMemoryLimit;
-        public UIntPtr JobMemoryLimit;
-        public UIntPtr PeakProcessMemoryUsed;
-        public UIntPtr PeakJobMemoryUsed;
-    }
-
-    // ReSharper disable once InconsistentNaming
-    private const int JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9;
-    // ReSharper disable once InconsistentNaming
-    private const int JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000;
-    
-    [DllImport("kernel32.dll")]
-#pragma warning disable SYSLIB1054
-    private static extern bool CloseHandle(IntPtr hObject);
-#pragma warning restore SYSLIB1054
-
-    #endregion
-    
     public void SetFileNameText()
     {
         if (!string.IsNullOrEmpty(PythonFilePath))

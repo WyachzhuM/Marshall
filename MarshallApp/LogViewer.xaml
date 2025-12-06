@@ -11,7 +11,7 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <TextBlock x:Name="Output"
                        TextWrapping="Wrap"
-                       Foreground="White"
+                       Foreground="{StaticResource PrimaryTextBrush}"
                        FontFamily="Consolas"
                        FontSize="14"/>
         </ScrollViewer>
