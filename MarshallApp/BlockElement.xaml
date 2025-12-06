@@ -80,12 +80,12 @@
                 <ScrollViewer x:Name="Scroll" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="OutputText"
                                TextWrapping="Wrap"
-                               Foreground="White"
+                               Foreground="{StaticResource PrimaryTextBrush}"
                                FontFamily="Consolas" PreviewMouseWheel="OutputText_MouseWheel" Loaded="OnOutputLoaded"/>
                 </ScrollViewer>
                 <TextBlock Grid.Row="0" x:Name="CodeViewer"
                            TextWrapping="Wrap"
-                           Foreground="White"
+                           Foreground="{StaticResource PrimaryTextBrush}"
                            Opacity="0.02"
                            FontFamily="Consolas"
                            IsHitTestVisible="False"/>
@@ -93,8 +93,8 @@
                 <TextBox x:Name="UserInputBox"
                          Grid.Row="1"
                          Visibility="Collapsed"
-                         Foreground="White"
-                         Background="#222"
+                         Foreground="{StaticResource PrimaryTextBrush}"
+                         Background="{StaticResource AdditionalBrush2}"
                          FontFamily="Consolas"
                          KeyDown="UserInputBox_KeyDown"
                          Padding="4"

@@ -7,28 +7,36 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using MarshallApp.Models;
+using MarshallApp.Services;
+
+// ReSharper disable InconsistentNaming
 
 namespace MarshallApp;
 
 public partial class BlockElement
 {
+    public string? PythonFilePath;
+    public bool IsLooping;
+    public double LoopInterval { get; set; } = 5.0;
     public bool IsRunning => _activeProcess is { HasExited: false };
     private readonly string _iconsPath;
     private CancellationTokenSource? _cts;
     private readonly Action<BlockElement>? _removeCallback;
-    public string? PythonFilePath;
-    public bool IsLooping;
-    public double LoopInterval { get; set; } = 5.0;
+    private readonly JobManager _jobManager;
     private DispatcherTimer? _loopTimer;
     private Process? _activeProcess;
     private bool _isInputVisible;
     private Point _dragStart;
     private bool _isDragging;
     private bool _pendingClear;
-
     public double OutputFontSize { get; set; } = 14.0;
 
-    public BlockElement(Action<BlockElement>? removeCallback)
+    public Action? OnProcessExited;
+    public Action<Process>? OnProcessStart;
+    public Action? OnProcessKilled;
+    
+    public BlockElement(Action<BlockElement>? removeCallback, LimitSettings limitSettings)
     {
         InitializeComponent();
         
@@ -36,6 +44,8 @@ public partial class BlockElement
         this.PreviewMouseLeftButtonDown += Block_PreviewMouseLeftButtonDown;
         
         _removeCallback = removeCallback;
+        _jobManager = new JobManager(limitSettings);
+        
         _iconsPath = Path.Combine(Environment.CurrentDirectory + "/Resource/Icons/");
         UpdateLoopIcon(IsLooping);
         
@@ -58,7 +68,7 @@ public partial class BlockElement
         _pendingClear = true;
         
         _cts = new CancellationTokenSource();
-
+        
         try
         {
             var psi = new ProcessStartInfo
@@ -83,97 +93,107 @@ public partial class BlockElement
 
             _activeProcess = new Process { StartInfo = psi, EnableRaisingEvents = true };
             _activeProcess.Start();
+            OnProcessStart?.Invoke(_activeProcess);
 
             // Create JobObject if not created yet
-            CreateJobObject();
-            AssignProcessToJobObject(_jobHandle, _activeProcess.Handle);
+            _jobManager.CreateJobObject();
+            JobManager.AssignProcessToJobObject(_jobManager.JobHandle, _activeProcess.Handle);
             
-            Task.Run(async () =>
-            {
-                try
-                {
-                    using var reader = _activeProcess.StandardOutput;
-                    var buffer = new char[1024];
-                    int charsRead;
-                    
-                    while ((charsRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                    {
-                        var text = new string(buffer, 0, charsRead);
-                        Dispatcher.Invoke(() =>
-                        {
-                            if (_pendingClear)
-                            {
-                                OutputText.Text = string.Empty;
-                                _pendingClear = false;
-                            }
-                            
-                            var cleaned = text.Replace("\r", "\n").Replace("\n\n", "\n");
-                            OutputText.Text += cleaned;
-                            Scroll.ScrollToEnd();
-                        });
-                    }
-                }
-                catch
-                {
-                    // ignored
-                }
-            }, _cts.Token);
+            await Task.Run(ReadOutOutput, _cts.Token);
             
-            Task.Run(async () =>
-            {
-                try
-                {
-                    using var reader = _activeProcess.StandardError;
-                    var buffer = new char[1024];
-                    int charsRead;
-            
-                    while ((charsRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                    {
-                        var text = new string(buffer, 0, charsRead);
-            
-                        if (text.Contains("No module named"))
-                        {
-                            var missingModule = ParseMissingModule(text);
-                            if (string.IsNullOrEmpty(missingModule)) continue;
-                            Dispatcher.Invoke(() => OutputText.Text += $"\n[AutoFix] Installing missing module: {missingModule}...\n");
-                            var installed = await InstallPythonPackage(missingModule);
-                            if (installed)
-                            {
-                                Dispatcher.Invoke(() => OutputText.Text += $"[AutoFix] Successfully installed {missingModule}. Restarting script...\n");
-                                Dispatcher.Invoke(RunPythonScript);
-                            }
-                            else
-                            {
-                                Dispatcher.Invoke(() => OutputText.Text += $"[AutoFix] Failed to install {missingModule}.\n");
-                            }
-                        }
-            
-                        Dispatcher.Invoke(() =>
-                        {
-                            var cleaned = text.Replace("\r", "\n");
-                            OutputText.Text += cleaned;
-                            Scroll.ScrollToEnd();
-                        });
-                    }
-                }
-                catch
-                {
-                    // ignored
-                }
-            }, _cts.Token);
-
-            _activeProcess.Exited += (_, _) =>
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    //if (!IsLooping)
-                    //    OutputText.Text += "\n\n[Process exited]\n";
-                });
-            };
+            await Task.Run(ReadOutError, _cts.Token);
         }
         catch (Exception ex)
         {
-            OutputText.Text = $"Python startup error:\n{ex.Message}";
+            SendExceptionMessage(ex);
+        }
+    }
+
+    private async void ReadOutOutput()
+    {
+        try
+        {
+            using var reader = _activeProcess?.StandardOutput;
+            var buffer = new char[1024];
+            int charsRead;
+                    
+            while ((charsRead = await reader?.ReadAsync(buffer, 0, buffer.Length)!) > 0)
+            {
+                var text = new string(buffer, 0, charsRead);
+                Dispatcher.Invoke(() =>
+                {
+                    if (_pendingClear)
+                    {
+                        OutputText.Text = string.Empty;
+                        _pendingClear = false;
+                    }
+                            
+                    var cleaned = text.Replace("\r", "\n").Replace("\n\n", "\n");
+                    OutputText.Text += cleaned;
+                    Scroll.ScrollToEnd();
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            SendExceptionMessage(ex);
+        }
+    }
+
+    private async void ReadOutError()
+    {
+        try
+        {
+            using var reader = _activeProcess?.StandardError;
+            var buffer = new char[1024];
+            int charsRead;
+            
+            while ((charsRead = await reader?.ReadAsync(buffer, 0, buffer.Length)!) > 0)
+            {
+                var text = new string(buffer, 0, charsRead);
+
+                AutoInstallMissingModule(text);
+            
+                Dispatcher.Invoke(() =>
+                {
+                    var cleaned = text.Replace("\r", "\n");
+                    OutputText.Text += cleaned;
+                    Scroll.ScrollToEnd();
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            SendExceptionMessage(ex);
+        }
+    }
+    
+    #region Python things
+    
+    private async void AutoInstallMissingModule(string output)
+    {
+        try
+        {
+            if (!output.Contains("No module named")) return;
+            
+            var missingModule = ParseMissingModule(output);
+            if (string.IsNullOrEmpty(missingModule)) return;
+            
+            Dispatcher.Invoke(() => OutputText.Text += $"\n[AutoFix] Installing missing module: {missingModule}...\n");
+            var installed = await InstallPythonPackage(missingModule);
+            if (installed)
+            {
+                Dispatcher.Invoke(() => OutputText.Text += $"[AutoFix] Successfully installed {missingModule}. Restarting script...\n");
+                await Dispatcher.Invoke(RunPythonScript);
+            }
+            else
+            {
+                Dispatcher.Invoke(() => OutputText.Text += $"[AutoFix] Failed to install {missingModule}.\n");
+            }
+        }
+        catch (Exception ex)
+        {
+            SendExceptionMessage(ex);
         }
     }
     
@@ -189,25 +209,7 @@ public partial class BlockElement
         }
     }
 
-    private void CreateJobObject()
-    {
-        if (_jobHandle != IntPtr.Zero) return;
-        _jobHandle = CreateJobObject(IntPtr.Zero, null);
-
-        var info = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION();
-        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-
-        SetInformationJobObject(
-            _jobHandle,
-            JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
-            ref info,
-            System.Runtime.InteropServices.Marshal.SizeOf<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>()
-        );
-    }
-
-    #region Python things
-
-        private static async Task<bool> InstallPythonPackage(string package)
+    private static async Task<bool> InstallPythonPackage(string package)
     {
         try
         {
@@ -227,7 +229,6 @@ public partial class BlockElement
             using var process = new Process();
             process.StartInfo = psi;
             process.Start();
-            //var output = await process.StandardOutput.ReadToEndAsync();
             var error = await process.StandardError.ReadToEndAsync();
             var success = !error.Contains("ERROR", StringComparison.OrdinalIgnoreCase);
             
@@ -283,68 +284,38 @@ public partial class BlockElement
             _cts?.Cancel();
 
             try { _activeProcess.StandardInput.BaseStream.Close(); }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                SendExceptionMessage(ex);
             }
 
             if (_activeProcess.HasExited) return;
-
+            OnProcessExited?.Invoke();
+            
             if (!forceKill) return;
             if (!_activeProcess.HasExited)
             {
                 _activeProcess.Kill(); 
             }
 
-            if (_jobHandle == IntPtr.Zero) return;
-            CloseHandle(_jobHandle);
-            _jobHandle = IntPtr.Zero;
+            if (_jobManager.JobHandle == IntPtr.Zero) return;
+            _jobManager.Close();
         }
-        catch { /* ignored */ }
+        catch (Exception ex)
+        {
+            SendExceptionMessage(ex);
+        }
         finally
         {
             _activeProcess?.Dispose();
             _activeProcess = null;
         }
         
-        //LastHope();
-    }
-
-    /// <summary>
-    /// Extremely dangerous method, don't use it
-    /// </summary>
-    private static void LastHope()
-    {
-        try
-        {
-            var currentProcess = Process.GetCurrentProcess();
-            var currentSessionId = currentProcess.SessionId;
-
-            foreach (var proc in Process.GetProcessesByName("python"))
-            {
-                if (proc.SessionId != currentSessionId) continue;
-                try
-                {
-                    if (proc.HasExited) continue;
-                    proc.Kill();
-                    proc.WaitForExit(2000);
-                }
-                catch { /* ignored */ }
-                finally { proc.Dispose(); }
-            }
-
-            foreach (var proc in Process.GetProcessesByName("pythonw"))
-            {
-                if (proc.SessionId != currentSessionId) continue;
-                try { if (!proc.HasExited) proc.Kill(); }
-                catch { /* ignored */ }
-                finally { proc.Dispose(); }
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine(ex.Message);
-        }
+        OnProcessKilled?.Invoke();
+        
+        // Sayonara
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
     }
 
     #endregion
@@ -370,7 +341,7 @@ public partial class BlockElement
         if (dlg.ShowDialog() != true) return;
         PythonFilePath = dlg.FileName;
         SetFileNameText();
-        RunPythonScript();
+        _ = RunPythonScript();
     }
 
     private void CopyButton_Click(object sender, RoutedEventArgs e) => Clipboard.SetText(OutputText.Text);
@@ -392,7 +363,7 @@ public partial class BlockElement
             input.ShowDialog();
 
             _loopTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(LoopInterval) };
-            _loopTimer.Tick += (_, _) => RunPythonScript();
+            _loopTimer.Tick += (_, _) => _ = RunPythonScript();
             _loopTimer.Start();
 
             UpdateLoopIcon(true);
@@ -406,6 +377,7 @@ public partial class BlockElement
         UpdatePeriodTimeTextBlock();
         UpdateLoopStatus();
     }
+    
     private void UpdateLoopIcon(bool isLooping)
     {
         var iconName = isLooping ? "loopGreen.png" : "loop.png";
@@ -490,7 +462,6 @@ public partial class BlockElement
         e.Handled = true;
     }
     
-    
     private void OnOutputLoaded(object sender, RoutedEventArgs e)
     {
         OutputText.FontSize = OutputFontSize;
@@ -500,80 +471,6 @@ public partial class BlockElement
 // extension part
 public partial class BlockElement
 {
-    #region --- JOB OBJECT KILL TREE ---
-
-    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
-#pragma warning disable SYSLIB1054
-    private static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
-#pragma warning restore SYSLIB1054
-
-    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
-#pragma warning disable SYSLIB1054
-    // ReSharper disable once InconsistentNaming
-    private static extern bool SetInformationJobObject(IntPtr hJob, int JobObjectInfoClass, ref JOBOBJECT_EXTENDED_LIMIT_INFORMATION lpJobObjectInfo, int cbJobObjectInfoLength);
-#pragma warning restore SYSLIB1054
-
-    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
-#pragma warning disable SYSLIB1054
-    private static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
-#pragma warning restore SYSLIB1054
-
-    private IntPtr _jobHandle;
-
-    // ReSharper disable once ArrangeTypeMemberModifiers
-    // ReSharper disable once InconsistentNaming
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    struct JOBOBJECT_BASIC_LIMIT_INFORMATION
-    {
-        public long PerProcessUserTimeLimit;
-        public long PerJobUserTimeLimit;
-        public int LimitFlags;
-        public UIntPtr MinimumWorkingSetSize;
-        public UIntPtr MaximumWorkingSetSize;
-        public int ActiveProcessLimit;
-        public long Affinity;
-        public int PriorityClass;
-        public int SchedulingClass;
-    }
-
-    // ReSharper disable once ArrangeTypeMemberModifiers
-    // ReSharper disable once InconsistentNaming
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    struct IO_COUNTERS
-    {
-        public ulong ReadOperationCount;
-        public ulong WriteOperationCount;
-        public ulong OtherOperationCount;
-        public ulong ReadTransferCount;
-        public ulong WriteTransferCount;
-        public ulong OtherTransferCount;
-    }
-
-    // ReSharper disable once ArrangeTypeMemberModifiers
-    // ReSharper disable once InconsistentNaming
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION
-    {
-        public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
-        public IO_COUNTERS IoInfo;
-        public UIntPtr ProcessMemoryLimit;
-        public UIntPtr JobMemoryLimit;
-        public UIntPtr PeakProcessMemoryUsed;
-        public UIntPtr PeakJobMemoryUsed;
-    }
-
-    // ReSharper disable once InconsistentNaming
-    private const int JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9;
-    // ReSharper disable once InconsistentNaming
-    private const int JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000;
-    
-    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
-#pragma warning disable SYSLIB1054
-    private static extern bool CloseHandle(IntPtr hObject);
-#pragma warning restore SYSLIB1054
-
-    #endregion
-    
     public void SetFileNameText()
     {
         if (!string.IsNullOrEmpty(PythonFilePath))
@@ -588,7 +485,7 @@ public partial class BlockElement
             if (!string.IsNullOrEmpty(PythonFilePath) && File.Exists(PythonFilePath))
             {
                 _loopTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(LoopInterval) };
-                _loopTimer.Tick += (_, _) => RunPythonScript();
+                _loopTimer.Tick += (_, _) => _ = RunPythonScript();
                 _loopTimer.Start();
 
                 UpdateLoopStatus();
@@ -611,7 +508,7 @@ public partial class BlockElement
         {
             OutputText.Text = string.Empty;
         });
-        RunPythonScript();
+        _ = RunPythonScript();
     } 
     
     private void Block_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -638,5 +535,13 @@ public partial class BlockElement
     private void CallLogViewer_Click(object sender, RoutedEventArgs e)
     {
         MainWindow.Instance?.ShowLogViewer(this);
+    }
+
+    private void SendExceptionMessage(Exception ex)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            OutputText.Text = ex.Message;
+        });
     }
 }

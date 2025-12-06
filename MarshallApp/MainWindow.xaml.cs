@@ -27,6 +27,7 @@ public partial class MainWindow : INotifyPropertyChanged
     private readonly List<BlockElement> _blocks = [];
     private WallpaperController? _wallControl;
     private readonly DispatcherTimer _wallpaperTimer = new();
+    private readonly LimitSettings _limitSettings;
     public event PropertyChangedEventHandler? PropertyChanged;
     public void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -55,6 +56,7 @@ public partial class MainWindow : INotifyPropertyChanged
         ScriptBrowser.ScriptOpenInNewPanel += ScriptBrowser_OpenInNewPanel;
 
         _appConfig = ConfigManager.Load();
+        _limitSettings = new LimitSettings(10, 10);
 
         Width = _appConfig.WindowWidth;
         Height = _appConfig.WindowHeight;
@@ -183,14 +185,14 @@ public partial class MainWindow : INotifyPropertyChanged
     #region Script Browser
     private void ScriptBrowser_OpenInNewPanel(string filePath)
     {
-        var block = new BlockElement(RemoveBlockElement)
+        var block = new BlockElement(RemoveBlockElement, _limitSettings)
         {
             PythonFilePath = filePath
         };
 
         _blocks.Add(block);
         MStackPanel.Children.Add(block);
-        block.RunPythonScript();
+        _ = block.RunPythonScript();
 
         UpdateLayoutGrid();
         SaveAppConfig();
@@ -232,7 +234,7 @@ public partial class MainWindow : INotifyPropertyChanged
 
     private void AddBlock_Click(object sender, RoutedEventArgs e)
     {
-        var block = new BlockElement(RemoveBlockElement);
+        var block = new BlockElement(RemoveBlockElement, _limitSettings);
         _blocks.Add(block);
         MStackPanel.Children.Add(block);
         UpdateLayoutGrid();
@@ -308,7 +310,7 @@ public partial class MainWindow : INotifyPropertyChanged
 
     private void LoadAllConfigs()
     {
-        foreach (var block in _appConfig.Blocks.Select(cfg => new BlockElement(RemoveBlockElement)
+        foreach (var block in _appConfig.Blocks.Select(cfg => new BlockElement(RemoveBlockElement, _limitSettings)
                  {
                      PythonFilePath = cfg.PythonFilePath,
                      IsLooping = cfg.IsLooping,
@@ -322,7 +324,7 @@ public partial class MainWindow : INotifyPropertyChanged
             if(!string.IsNullOrEmpty(block.PythonFilePath) && File.Exists(block.PythonFilePath))
             {
                 block.SetFileNameText();
-                block.RunPythonScript();
+                _ = block.RunPythonScript();
             }
             block.RestoreLoopState();
         }

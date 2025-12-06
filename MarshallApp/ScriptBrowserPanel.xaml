@@ -46,7 +46,7 @@
             <RowDefinition/>
         </Grid.RowDefinitions>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-            <TextBlock Text="Browser" Foreground="White" FontWeight="Bold" Margin="10" FontSize="14"/>
+            <TextBlock Text="Browser" Foreground="{StaticResource PrimaryTextBrush}" FontWeight="Bold" Margin="10" FontSize="14"/>
         </StackPanel>
         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Style="{StaticResource FlatButtonStyle}" Width="20" Height="20" Margin="3" Click="RefreshButton_Click">
@@ -61,7 +61,7 @@
         <ListBox x:Name="ScriptList"
                  Grid.Row="1"
                  Background="{StaticResource PanelsBrush}"
-                 Foreground="White"
+                 Foreground="{StaticResource PrimaryTextBrush}"
                  Margin="5"
                  HorizontalContentAlignment="Stretch"
                  Style="{StaticResource ModernListBoxStyle}"
